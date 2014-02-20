@@ -1,1 +1,5 @@
-var app = function() {}();
+var app = function() {
+
+	var exports = {};
+	return exports;
+}();
