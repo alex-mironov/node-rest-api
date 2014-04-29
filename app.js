@@ -10,13 +10,15 @@ var bodyParser = require('body-parser');
 var errorHandler = require('errorhandler');
 
 var routes = require('./routes');
-// var user = require('./routes/user');
+var userRoute = require('./routes/user');
 var http = require('http');
 var path = require('path');
 var db = require('./db');
 
 var app = express();
 var router = express.Router();
+
+// console.log('are routers the same?', express.Router() === express.Router())
 
 // all environments
 app.set('port', process.env.PORT || 3000);
@@ -36,17 +38,13 @@ router.route('/')
     res.send('Yay!..');
   });
 
-router.route('/users')
-  .get(function (req, res) {
-    res.send({response: 'OK'});
-  });
-
+// todo: implement not found route
 app.use('/api', router);
+app.use('/api/users', userRoute(express.Router())); // initilize users router
 
 db.connect(function (err) {
   if (err) {
-    console.error.bind(console, 'mongodb connection error:');
-    console.error('Express server cannot be started');
+    console.error('Express server cannot start. mongodb connection error:', err);
     return;
   }
 

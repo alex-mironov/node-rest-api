@@ -2,8 +2,7 @@ var https = require('https');
 var User = require('./db').User;
 
 module.exports = {
-  getUsers: getUsers,
-  fillInUsers: fillInUsers
+  import: import
 };
 
 var options = {
@@ -33,11 +32,12 @@ function getUsers (since, callback) {
   .on('errror', callback);
 }
 
-function fillInUsers () {
+// allows to import users from GitHub
+function import () {
   for (var i = 10; i >= 0; i--) {
     getUsers(i * 100, function (err, users) {
       if (err) {
-        console.log('error retrieving users');
+        console.log('error retrieving users', err);
         return;
       }
       console.log('users received');
