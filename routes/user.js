@@ -1,8 +1,10 @@
+var db = require('./db').User;
 
-/*
- * GET users listing.
- */
-
-exports.list = function(req, res){
-  res.send("respond with a resource");
+module.exports = {
+	create: create
 };
+
+function create (req, res) {
+  
+  // res.send("respond with a resource");
+}
