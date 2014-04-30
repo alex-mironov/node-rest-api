@@ -4,11 +4,24 @@ mongoose.connect('mongodb://localhost/contacts');
 var db = mongoose.connection;
 
 var userSchema = mongoose.Schema({
-	id: Number,
-	login: String,
-	url: String,
-	type: String,
-	siteAdmin: Boolean
+  accountId: Number, 
+  creationDate: Number,
+  userType: String, 
+  location: String,
+  url: String,
+  displayName: String,
+  profileImage: String,
+  bages: [
+  // {
+		// title: String,
+		// count: Number  	
+  // }
+  ]
+});
+
+var bageSchema = mongoose.Schema({
+	title: String,
+	count: Number
 });
 
 var User = mongoose.model('User', userSchema);

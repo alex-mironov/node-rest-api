@@ -1,33 +1,35 @@
 var http = require('http');
+var zlib = require('zlib');
 var User = require('./db').User;
 
 module.exports = {
   dump: dump
 };
 
-var options = {
-  hostname: 'api.stackexchange.com'
-};
+// var options = {
+//   hostname: 'api.stackexchange.com'
+// };
 
 function getUsers (page, callback) {
-  options.path = '/2.2/users?page=' + page + '&pagesize=5&order=desc&sort=reputation&site=stackoverflow'; 
-  console.log('loading users', options.path);
-  http.get(options, function (res) {
-    console.log('STATUS: ' + res.statusCode);
-    console.log('HEADERS: ' + JSON.stringify(res.headers));
+  var url = 'http://api.stackexchange.com/2.2/users?page=' + page + '&pagesize=2&order=desc&sort=reputation&site=stackoverflow'; 
+  console.log('loading users', url);
+  
+  http.get(url, function (res) {
+    // console.log('STATUS: ' + res.statusCode);
+    // console.log('HEADERS: ' + JSON.stringify(res.headers));
     // res.setEncoding('utf8');
     
+    var gunzip = zlib.createGunzip();
+    res.pipe(gunzip);
+
     var dataStr = '';
-    res.on('data', function (chunk) {
-      dataStr += chunk.toString();  // todo: check if status is not 200
-      console.log(dataStr);
-      throw 'first chunk has been read';
+    gunzip.on('data', function (chunk) {
+      dataStr += chunk.toString('utf-8');
     });
 
-    res.on('end', function () {
-      console.log('page:', dataStr.toString());
+    gunzip.on('end', function () {
       var users = JSON.parse(dataStr);
-      callback(null, users);
+      callback(null, users.items);
     });
   })
   .on('errror', callback);
@@ -35,25 +37,44 @@ function getUsers (page, callback) {
 
 // allows to dump users from StackExchange (StackOverflow)
 function dump () {
-  for (var i = 10; i > 0; i--) {
+  for (var i = 1; i > 0; i--) {
     getUsers(i, function (err, users) {
       if (err) {
         console.log('error retrieving users', err);
         return;
       }
-      console.log('users received');
-
+      // console.log('users received', users);
       users.forEach(function (u) {
         // inserting or updating existing users
-        // todo: change id to githubId
-        User.update({id: u.id}, {gitHubId: u.id, login: u.login, url: u.url, type: u.type}, 
+        var userUpd = {
+          accountId: u.account_id, 
+          creationDate: u.creation_date,
+          userType: u.user_type,  
+          location: u.location,
+          url: u.link,
+          displayName: u.display_name,
+          profileImage: u.profile_image,
+          $addToSet: {bages: { $each: []}}
+        };
+
+        var bages = u.badge_counts,
+          updBagesList = userUpd.$addToSet.bages.$each;
+        for (var b in bages) {
+          var bage = {};
+          bage.title = b;
+          bage.count = bages[b];
+          updBagesList.push(bage);
+        }
+
+        User.update({accountId: u.account_id}, 
+          userUpd, 
           {upsert: true},
           function (err, n) {
             if (err) {
-              console.error('error upserting', u.id);
+              console.error('error upserting', u.account_id);
               return;
             }
-            // console.log('affected', u.id, n, 'times');
+            console.log('affected', n, 'times');
           });
       });
     });
