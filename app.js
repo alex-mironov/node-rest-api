@@ -61,14 +61,23 @@ router.route('/')
 app.use('/api', router);
 app.use('/api/users', userRoute(express.Router())); // initilize users router
 
-
 db.connect(function (err) {
   if (err) {
     console.error('Express server cannot start. mongodb connection error:', err);
     return;
   }
 
+  console.log('connected to mongodb');
+  if (process.argv[2] == '--import') {
+    var userImport = require('./user-import');
+    userImport(startServer);
+  } else {
+    startServer();
+  }
+});  
+
+function startServer () {
   http.createServer(app).listen(app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
-  });   
-});
+  });
+}

@@ -1,11 +1,8 @@
 var mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost/contacts');
-var db = mongoose.connection;
-
 var userSchema = mongoose.Schema({
   accountId: Number, 
-  creationDate: Number,
+  creationDate: Number, // how is it stored ???
   userType: String, 
   location: String,
   url: String,
@@ -35,6 +32,8 @@ module.exports = {
 };
 
 function connect (callback) {
+  var db = mongoose.connection;
 	db.on('error', callback); // todo: is chaining possible?
 	db.once('open', callback);	
+  mongoose.connect('mongodb://localhost/contacts');
 }
