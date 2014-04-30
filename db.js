@@ -14,6 +14,7 @@ var userSchema = mongoose.Schema({
 var User = mongoose.model('User', userSchema);
 
 // todo: track model
+// todo: make login field indexed
 
 module.exports = {
 	connect: connect,

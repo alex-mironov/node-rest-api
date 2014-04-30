@@ -1,30 +1,31 @@
-var https = require('https');
+var http = require('http');
 var User = require('./db').User;
 
 module.exports = {
-  import: import
+  dump: dump
 };
 
 var options = {
-  hostname: 'api.github.com',
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/34.0.1847.116 Chrome/34.0.1847.116 Safari/537.36'
-  }
+  hostname: 'api.stackexchange.com'
 };
 
-function getUsers (since, callback) {
-  options.path = '/users?since=' + since; 
+function getUsers (page, callback) {
+  options.path = '/2.2/users?page=' + page + '&pagesize=5&order=desc&sort=reputation&site=stackoverflow'; 
   console.log('loading users', options.path);
-  https.get(options, function (res) {
-    // console.log('STATUS: ' + res.statusCode);
-    // console.log('HEADERS: ' + JSON.stringify(res.headers));
-
+  http.get(options, function (res) {
+    console.log('STATUS: ' + res.statusCode);
+    console.log('HEADERS: ' + JSON.stringify(res.headers));
+    // res.setEncoding('utf8');
+    
     var dataStr = '';
     res.on('data', function (chunk) {
-      dataStr += chunk;  // todo: check if status is not 200
+      dataStr += chunk.toString();  // todo: check if status is not 200
+      console.log(dataStr);
+      throw 'first chunk has been read';
     });
 
     res.on('end', function () {
+      console.log('page:', dataStr.toString());
       var users = JSON.parse(dataStr);
       callback(null, users);
     });
@@ -32,10 +33,10 @@ function getUsers (since, callback) {
   .on('errror', callback);
 }
 
-// allows to import users from GitHub
-function import () {
-  for (var i = 10; i >= 0; i--) {
-    getUsers(i * 100, function (err, users) {
+// allows to dump users from StackExchange (StackOverflow)
+function dump () {
+  for (var i = 10; i > 0; i--) {
+    getUsers(i, function (err, users) {
       if (err) {
         console.log('error retrieving users', err);
         return;
@@ -44,7 +45,8 @@ function import () {
 
       users.forEach(function (u) {
         // inserting or updating existing users
-        User.update({id: u.id}, {id: u.id, login: u.login, url: u.url, type: u.type, siteAdmin: u.site_admin}, 
+        // todo: change id to githubId
+        User.update({id: u.id}, {gitHubId: u.id, login: u.login, url: u.url, type: u.type}, 
           {upsert: true},
           function (err, n) {
             if (err) {
@@ -57,3 +59,5 @@ function import () {
     });
   }
 }
+
+dump();
