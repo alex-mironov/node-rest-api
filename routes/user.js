@@ -1,6 +1,10 @@
 var db = require('./../db'),
   User = db.User,
   Track = db.Track;
+
+var multipart = require('connect-multiparty');
+var multipartMiddleware = multipart({uploadDir: 'uploads'});
+
 var pageSize = 50; // todo: move to config?
 
 
@@ -43,14 +47,19 @@ module.exports = function (router) {
       var user = req.user;
       res.apiJson(false, user.tracks);
     })
-    .post(function (req, res) {
+    .post(multipartMiddleware, function (req, res) {
       var user = req.user,
-        body = req.body;
+        body = req.body,
+        trackFile = req.files.volume;
 
+      console.log('file', trackFile);
 
       var track = new Track({
         title: body.title,
-        tags: body.tags
+        tags: body.tags,
+        path: trackFile.path,
+        releaseYear: body.releaseYear,
+        artist: body.artist
       });
       user.tracks.push(track);
       user.save(res.apiJson);
@@ -96,7 +105,8 @@ function createUser (req, res) {
     profileImage: body.profileImage,
     reputation: body.reputation,
     acceptRate: body.acceptRate,
-    isEmployee: body.isEmployee
+    isEmployee: body.isEmployee,
+    creationDate: new Date().getTime()
   });
 
   user.save(function (err, data) {

@@ -13,7 +13,7 @@ var Track = mongoose.model('Track', trackSchema);
 
 var userSchema = mongoose.Schema({
   accountId: Number, 
-  displayName: {type: String, required: true},
+  displayName: {type: String, required: true},  
   creationDate: Number, // how is it stored ???
   userType: String, 
   location: String,
@@ -43,6 +43,7 @@ var bageSchema = mongoose.Schema({
 // var utcSeconds = 1222430705;
 // var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
 // d.setUTCSeconds(utcSeconds);
+// to get uts seconds from JavaScript time stamp Math.floor(d.getTime() / 1000)
 
 var User = mongoose.model('User', userSchema);
 

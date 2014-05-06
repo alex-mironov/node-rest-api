@@ -43,22 +43,8 @@ if ('development' == app.get('env')) {
   app.use(errorHandler());
 }
 
-var multipart = require('connect-multiparty');
-var multipartMiddleware = multipart();
-
-var router = express.Router();
-router.route('/')
-  .get(function (req, res) {
-    res.send('Yay!..');
-  })
-  .post(multipartMiddleware, function (req, res) {
-    console.log(req.body, req.files);
-    res.send({successfull: 'OK', message: 'files uploaded to router endpoint'});
-  });
 
 // todo: implement not found route
-app.use('/api', router);
-
 var router = express.Router();
 
 router.use(function (req, res, next) {

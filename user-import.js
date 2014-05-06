@@ -21,7 +21,6 @@ function importUsers (callback) {
         // inserting or updating existing users
         var userUpd = {
           accountId: u.account_id, 
-          creationDate: u.creation_date,
           userType: u.user_type,  
           // location: u.location,
           url: u.link,
@@ -31,6 +30,10 @@ function importUsers (callback) {
           isEmployee: u.is_employee,
           $addToSet: {bages: { $each: []}}
         };
+
+        var d = new Date(0);
+        var timestamp = d.setUTCSeconds(u.creation_date);
+        userUpd.creationDate = timestamp;
 
         if (u.accept_rate) {
           userUpd.acceptRate = u.accept_rate;
