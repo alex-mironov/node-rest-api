@@ -1,25 +1,11 @@
-var User = require('./../db').User;
+var db = require('./../db'),
+  User = db.User,
+  Track = db.Track;
 var pageSize = 50; // todo: move to config?
 
 
 // it can be a separate route object
 module.exports = function (router) {
-
-  router.use(function (req, res, next) {
-    res.apiJson = function (err, data, code) {
-      if (err) {
-        console.log('error requesting', req.path, 'error:', err, data || '');
-        code = code || 400;
-        if (code == 500) {
-          data = {error: 'Something is wrong'};
-        }
-      } else {
-        code = 200;
-      }
-      res.json(data, code);
-    };
-    next();
-  });
 
   router.param('id', function (req, res, next, userId) {
     User.findById(userId, function (err, user) {
@@ -31,7 +17,7 @@ module.exports = function (router) {
         res.apiJson(true, {error: 'User Not Found'}, 404);
         return;
       }
-      console.log('found user', user);
+      req.user = user;
       next();
     });
   });
@@ -42,13 +28,48 @@ module.exports = function (router) {
 
   router.route('/:id')
     .get(function (req, res, next) {
-      User.findById(req.params.id, res.apiJson);
+      res.apiJson(false, user);
     })
     .put(function (req, res) {
-      User.findById(req.params.id, function (err, user) {
+      var user = req.user;
 
-      });
+    })
+    .delete(function (req, res) {
+      user.remove(res.apiJson);
     });
+
+  router.route('/:id/tracks')
+    .get(function (req, res) {
+      var user = req.user;
+      res.apiJson(false, user.tracks);
+    })
+    .post(function (req, res) {
+      var user = req.user,
+        body = req.body;
+
+
+      var track = new Track({
+        title: body.title,
+        tags: body.tags
+      });
+      user.tracks.push(track);
+      user.save(res.apiJson);
+    });
+
+    router.route('/:id/tracks/:trackId')
+      .get(function (req, res) {
+        var user = req.user;
+
+        var trackId = req.params.trackId;
+
+        var track = user.tracks.id(trackId);
+        res.send(track);
+      })
+      .delete(function (req, res) {
+        var user = req.user;
+        user.tracks.id(req.params.trackId).remove();
+        user.save(res.apiJson);
+      });
 
   return router;
 }

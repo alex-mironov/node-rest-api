@@ -1,5 +1,16 @@
 var mongoose = require('mongoose');
 
+var trackSchema = mongoose.Schema({
+  title: {type: String, required: true},
+  artist: String,
+  path: String,
+  tags: [String],
+  releaseYear: Number
+});
+
+var Track = mongoose.model('Track', trackSchema); 
+
+
 var userSchema = mongoose.Schema({
   accountId: Number, 
   displayName: {type: String, required: true},
@@ -17,13 +28,16 @@ var userSchema = mongoose.Schema({
 		// title: String,
 		// count: Number  	
   // }
-  ]
+  ],
+  tracks: [trackSchema]
 });
 
 var bageSchema = mongoose.Schema({
 	title: String,
 	count: Number
 });
+
+
 
 // todo: convert StackExchange epoch times to JavaScript dates. Make more readable dates 
 // var utcSeconds = 1222430705;
@@ -37,7 +51,8 @@ var User = mongoose.model('User', userSchema);
 
 module.exports = {
 	connect: connect,
-	User: User
+	User: User,
+  Track: Track
 };
 
 function connect (callback) {

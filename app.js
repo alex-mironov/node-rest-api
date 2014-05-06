@@ -58,7 +58,26 @@ router.route('/')
 
 // todo: implement not found route
 app.use('/api', router);
-app.use('/api/users', userRoute(express.Router())); // initilize users router
+
+var router = express.Router();
+
+router.use(function (req, res, next) {
+  res.apiJson = function (err, data, code) {
+    if (err) {
+      console.log('error requesting', req.path, 'error:', err, data || '');
+      code = code || 400;
+      if (code == 500) {
+        data = {error: 'Something is wrong'};
+      }
+    } else {
+      code = 200;
+    }
+    res.json(data, code);
+  };
+  next();
+});
+
+app.use('/api/users', userRoute(router)); // initilize users router
 
 db.connect(function (err) {
   if (err) {
