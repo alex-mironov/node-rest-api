@@ -8,7 +8,7 @@ module.exports = importUsers;
 function importUsers (callback) {
 
   async.times(10, function (n, next) {
-    var page = n + 1;
+    var page = 100 * (n + 1);
 
     userService.getUsers(page, function (err, users) {
       if (err) {
@@ -27,8 +27,14 @@ function importUsers (callback) {
           url: u.link,
           displayName: u.display_name,
           profileImage: u.profile_image,
+          reputation: u.reputation,
+          isEmployee: u.is_employee,
           $addToSet: {bages: { $each: []}}
         };
+
+        if (u.accept_rate) {
+          userUpd.acceptRate = u.accept_rate;
+        }
 
         var bages = u.badge_counts,
           updBagesList = userUpd.$addToSet.bages.$each;

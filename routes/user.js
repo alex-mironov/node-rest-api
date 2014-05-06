@@ -8,11 +8,11 @@ module.exports = function (router) {
   router.use(function (req, res, next) {
     res.apiJson = function (err, data, code) {
       if (err) {
-        console.log('error requesting', req.path, 'error:', err);
         code = code || 400;
         if (code == 500) {
           data = {error: 'Something is wrong'};
         }
+        console.log('error requesting', req.path, 'error:', err, data || '');
       } else {
         code = 200;
       }
@@ -21,20 +21,28 @@ module.exports = function (router) {
     next();
   });
 
-  router.param('user', function (req, res, next, userName) {
-    console.log('request with user param', userName);
-    // todo: check if user with provided userName exists in db
-    next();
+  router.param('id', function (req, res, next, userId) {
+    User.findById(userId, function (err, user) {
+      if (err) {
+        res.apiJson(err);
+        return;
+      }
+      if (!user) {
+        res.apiJson(true, {error: 'User Not Found'}, 404);
+        return;
+      }
+      console.log('found user', user);
+      next();
+    });
   });
 
   router.route('/')
     .get(get)
     .post(create);
 
-  router.route('/:user')
+  router.route('/:id')
     .get(function (req, res, next) {
-      console.log('successfull validation. accessing user', req.params.user);
-      res.send({success: 'OK', login: req.params.user})
+      res.send({success: 'OK', login: req.params.id})
     });
 
   return router;
@@ -56,12 +64,14 @@ function get (req, res) {
 }
 
 function create (req, res) {
-  var login = req.body.login;
+  var body = req.body;
 
-  if (!login) {
-    res.apiJson(true, {error: 'login is mandatory field'});
-    return;
-  }
+    console.log('body', body);
+
+  // if (!login) {
+  //   res.apiJson(true, {error: 'login is mandatory field'});
+  //   return;
+  // }
 
   console.log('user login:', login);
   User.findOne({login: login}, function (err, user) {
@@ -75,7 +85,20 @@ function create (req, res) {
       return;
     }
 
-    res.send({message: 'user ' + login + ' will be created'});
+    var user = new User({
+      displayName: body.displayName,
+      profileImage: body.profileImage,
+      reputation: body.reputation,
+      acceptRate: body.acceptRate,
+      isEmployee: body.isEmployee
+    });
+
+    user.save(function (err, data) {
+
+      console.log('user saved', data);
+      res.apiJson(err, data);
+    });
+
   });
 
 }

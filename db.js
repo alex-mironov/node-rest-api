@@ -6,6 +6,10 @@ var userSchema = mongoose.Schema({
   userType: String, 
   location: String,
   url: String,
+  isEmployee: Boolean,
+  reputation: Number,
+  acceptRate: Number,
+  websiteUrl: String,
   displayName: String,
   profileImage: String,
   bages: [
@@ -20,6 +24,11 @@ var bageSchema = mongoose.Schema({
 	title: String,
 	count: Number
 });
+
+// todo: convert StackExchange epoch times to JavaScript dates. Make more readable dates 
+// var utcSeconds = 1222430705;
+// var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
+// d.setUTCSeconds(utcSeconds);
 
 var User = mongoose.model('User', userSchema);
 
