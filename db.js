@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 
 var userSchema = mongoose.Schema({
   accountId: Number, 
+  displayName: {type: String, required: true},
   creationDate: Number, // how is it stored ???
   userType: String, 
   location: String,
@@ -10,7 +11,6 @@ var userSchema = mongoose.Schema({
   reputation: Number,
   acceptRate: Number,
   websiteUrl: String,
-  displayName: String,
   profileImage: String,
   bages: [
   // {
@@ -33,7 +33,7 @@ var bageSchema = mongoose.Schema({
 var User = mongoose.model('User', userSchema);
 
 // todo: track model
-// todo: make login field indexed
+// todo: make accountId field indexed
 
 module.exports = {
 	connect: connect,

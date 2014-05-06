@@ -8,11 +8,11 @@ module.exports = function (router) {
   router.use(function (req, res, next) {
     res.apiJson = function (err, data, code) {
       if (err) {
+        console.log('error requesting', req.path, 'error:', err, data || '');
         code = code || 400;
         if (code == 500) {
           data = {error: 'Something is wrong'};
         }
-        console.log('error requesting', req.path, 'error:', err, data || '');
       } else {
         code = 200;
       }
@@ -37,19 +37,23 @@ module.exports = function (router) {
   });
 
   router.route('/')
-    .get(get)
-    .post(create);
+    .get(getUsers)
+    .post(createUser);
 
   router.route('/:id')
     .get(function (req, res, next) {
-      res.send({success: 'OK', login: req.params.id})
+      User.findById(req.params.id, res.apiJson);
+    })
+    .put(function (req, res) {
+      User.findById(req.params.id, function (err, user) {
+
+      });
     });
 
   return router;
 }
 
-// find one should be implemented base on the login as a key
-function get (req, res) {
+function getUsers (req, res) {
   var query = req.query,
     since = query.since || 0;
 
@@ -63,42 +67,35 @@ function get (req, res) {
   });
 }
 
-function create (req, res) {
+function createUser (req, res) {
   var body = req.body;
 
-    console.log('body', body);
-
-  // if (!login) {
-  //   res.apiJson(true, {error: 'login is mandatory field'});
-  //   return;
-  // }
-
-  console.log('user login:', login);
-  User.findOne({login: login}, function (err, user) {
-    if (err) {
-      res.apiJson(err, null, 500);
-      return;
-    }
-
-    if (user) {
-      res.apiJson(true, {error: 'user with the same login already exists'});
-      return;
-    }
-
-    var user = new User({
-      displayName: body.displayName,
-      profileImage: body.profileImage,
-      reputation: body.reputation,
-      acceptRate: body.acceptRate,
-      isEmployee: body.isEmployee
-    });
-
-    user.save(function (err, data) {
-
-      console.log('user saved', data);
-      res.apiJson(err, data);
-    });
-
+  var user = new User({
+    displayName: body.displayName,
+    profileImage: body.profileImage,
+    reputation: body.reputation,
+    acceptRate: body.acceptRate,
+    isEmployee: body.isEmployee
   });
 
+  user.save(function (err, data) {
+    if (!err) {
+      res.apiJson(false, data, 201);
+    } else {
+      if (err.name == 'ValidationError') {
+        res.apiJson(err, {error: composeValidationMessage(err)});
+      } else {
+        res.apiJson(err, null, 500);
+      }
+    }
+  });
+}
+
+function composeValidationMessage (validationErr) {
+  var errors = validationErr.errors,
+    msg = validationErr.message + ':';
+  for (var e in errors) {
+    msg += ' ' + errors[e].message;
+  }
+  return msg;
 }
