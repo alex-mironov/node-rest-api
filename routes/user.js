@@ -32,10 +32,43 @@ module.exports = function (router) {
 
   router.route('/:id')
     .get(function (req, res, next) {
-      res.apiJson(false, user);
+      res.apiJson(false, req.user);
     })
     .put(function (req, res) {
-      var user = req.user;
+      var body = req.body, 
+        user = req.user;
+
+      var userUpd = {
+        isEmployee: body.isEmployee,
+        displayName: body.displayName,
+      };
+
+        userUpd.url = body.url;
+        userUpd.accountId = body.accountId;
+        userUpd.profileImage = body.profileImage || '';
+        userUpd.websiteUrl = body.websiteUrl || '';
+        userUpd.acceptRate = body.acceptRate || 0;
+        userUpd.reputation = body.reputation || 0;
+        userUpd.userType = body.userType;
+
+
+      User.findByIdAndUpdate(user._id, userUpd, function (err, u) {
+        if (err) {
+          console.log('error updating user document', err);
+          res.apiJson(err);
+        }
+        res.apiJson(false, u);
+      });
+
+  // creationDate: Number, // how is it stored ???
+  // bages: [
+  // // {
+  //   // title: String,
+  //   // count: Number    
+  // // }
+  // ],
+  // tracks: [trackSchema]
+
 
     })
     .delete(function (req, res) {
@@ -52,6 +85,7 @@ module.exports = function (router) {
         body = req.body,
         trackFile = req.files.volume;
 
+//  todo: track validation
       console.log('file', trackFile);
 
       var track = new Track({
@@ -61,18 +95,47 @@ module.exports = function (router) {
         releaseYear: body.releaseYear,
         artist: body.artist
       });
+
       user.tracks.push(track);
       user.save(res.apiJson);
     });
 
     router.route('/:id/tracks/:trackId')
       .get(function (req, res) {
-        var user = req.user;
-
-        var trackId = req.params.trackId;
-
-        var track = user.tracks.id(trackId);
+        var user = req.user,
+          trackId = req.params.trackId,
+          track = user.tracks.id(trackId);
         res.send(track);
+      })
+      .put(function (req, res) {
+        var user = req.user,
+          body = req.body,
+          trackId = req.params.trackId,
+          track = user.tracks.id(trackId);
+        
+        if (body.path) {
+          res.apiJson({error: '\'path\' field is readonly'});
+          return;
+        }
+
+        track.title = body.title;
+        track.artist = body.artist;
+        track.releaseYear = body.releaseYear;
+        track.tags = body.tags;
+
+        user.save(function (err, u) {
+          if (err) {
+            var data;
+            if (err.name == 'ValidationError') {
+              data = {error: composeValidationMessage(err)};
+            } 
+            res.apiJson(err, data);
+            return;
+          }
+          
+          res.apiJson(false, u.tracks.id(trackId));
+        });
+
       })
       .delete(function (req, res) {
         var user = req.user;
@@ -87,14 +150,7 @@ function getUsers (req, res) {
   var query = req.query,
     since = query.since || 0;
 
-  User.find({ }, null, { skip: since, limit: pageSize }, function (err, users) {
-    if (err) { // todo: implement apiJson
-      console.log('error retrieving users', err);
-      res.send(500, {error: 'Something was wrong'});
-      return;
-    }
-    res.send(users);
-  });
+  User.find({ }, null, { skip: since, limit: pageSize }, res.apiJson);
 }
 
 function createUser (req, res) {

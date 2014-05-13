@@ -24,7 +24,6 @@ var app = express();
 app.set('port', process.env.PORT || 3000);
 
 app.use(bodyParser());
-app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 
 app.use(favicon(__dirname + '/public/favicon.ico'));
@@ -34,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(function(err, req, res, next){
     res.status(err.status || 500);
-    log.error('Internal error(%d): %s',res.statusCode,err.message);
+    console.error('Internal error(%d): %s',res.statusCode,err.message);
     res.send({ error: err.message });
 });
 
@@ -54,6 +53,8 @@ router.use(function (req, res, next) {
       code = code || 400;
       if (code == 500) {
         data = {error: 'Something is wrong'};
+      } else {
+        data = data || {error: err.error || ''};
       }
     } else {
       code = 200;
@@ -64,6 +65,11 @@ router.use(function (req, res, next) {
 });
 
 app.use('/api/users', userRoute(router)); // initilize users router
+
+app.get('/pocket', function (req, res) {
+  console.log('pocket requested', req.body);
+  res.send(200);
+});
 
 db.connect(function (err) {
   if (err) {
