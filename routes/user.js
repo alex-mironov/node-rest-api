@@ -32,67 +32,60 @@ module.exports = function (router) {
 
   router.route('/:id')
     .get(function (req, res, next) {
-      res.apiJson(false, req.user);
+      res.send(req.user);
     })
     .put(function (req, res) {
       var body = req.body, 
         user = req.user;
 
-      var userUpd = {
-        isEmployee: body.isEmployee,
-        displayName: body.displayName,
-      };
-
       if (body.creationDate) {
-        // todo: prevent from changes readonly field
+        res.apiJson({error: '\'creationDate\' is readonly field'});
+        return;
       }
 
-      userUpd.url = body.url;
-      userUpd.accountId = body.accountId;
-      userUpd.profileImage = body.profileImage || '';
-      userUpd.websiteUrl = body.websiteUrl || '';
-      userUpd.userType = body.userType || '';
-      userUpd.location = body.location || '';
-
-  // accountId: Number, 
-  // displayName: {type: String, required: true},  
-  // creationDate: Number, // how is it stored ???
-  // userType: String, 
-  // location: String,
-  // url: String,
-  // isEmployee: Boolean,
-  // reputation: Number,
-  // acceptRate: Number,
-  // websiteUrl: String,
-  // profileImage: String,
-
-
-      User.findByIdAndUpdate(user._id, userUpd, function (err, u) {
-        debugger;
+      User.findOne({accountId: body.accountId}, function (err, existUser) {
         if (err) {
-          if (err.name == 'MongoError' && err.lastErrorObject.code == 11000) {
-            res.apiJson(err, {error: 'Provided \'accountId\' already in use'});
-          } else {
-            res.apiJson(err);
-          }
-          console.log('error updating user document', err);
-          // todo: check if validation error
+          res.apiJson(err);
           return;
         }
-        res.apiJson(false, u);
+        if (existUser && user.accountId != existUser.accountId) {
+          res.apiJson(true, {error: 'Specified \'accountId\' already in use'});
+          return;
+        }
+
+        user.accountId = body.accountId;
+        user.displayName = body.displayName;
+        user.isEmployee = body.isEmployee;
+        user.profileImage = body.profileImage;
+        user.websiteUrl = body.websiteUrl;
+        user.userType = body.userType;
+        user.location = body.location;
+        user.url = body.url;
+        user.bages = body.bages;
+
+        user.save(function (err, updatedUser, n) {
+          if (err) {
+            if (err.name == 'ValidationError') {
+              res.apiJson(err, {error: composeValidationMessage(err)});
+            } else {
+              res.apiJson(err);
+            }
+            return;
+          }
+          res.send(updatedUser);
+        });
       });
-
-  // bages: [
-  // // {
-  //   // title: String,
-  //   // count: Number    
-  // // }
-  // ],
-
 
     })
     .delete(function (req, res) {
-      user.remove(res.apiJson);
+      var user = req.user;
+      user.remove(function (err) {
+        if (err) {
+          res.apiJson(err);
+          return;
+        }
+        res.send(204);
+      });
     });
 
   router.route('/:id/tracks')
@@ -190,7 +183,8 @@ function createUser (req, res) {
     displayName: body.displayName,
     profileImage: body.profileImage,
     isEmployee: body.isEmployee,
-    creationDate: new Date().getTime()
+    creationDate: new Date().getTime(),
+    bages: body.bages
   });
 
   if (body.reputation) {
@@ -199,18 +193,6 @@ function createUser (req, res) {
   if (body.acceptRate) {
     user.acceptRate = body.acceptRate;
   }
-
-  // accountId: Number, 
-  // displayName: {type: String, required: true},  
-  // creationDate: Number, // how is it stored ???
-  // userType: String, 
-  // location: String,
-  // url: String,
-  // isEmployee: Boolean,
-  // reputation: Number,
-  // acceptRate: Number,
-  // websiteUrl: String,
-  // profileImage: String,
 
   user.save(function (err, data) {
     if(err) {
