@@ -1,7 +1,9 @@
 var mongoose = require('mongoose');
+mongoose.set('debug', true); // todo: 
+
 
 var trackSchema = mongoose.Schema({
-  title: {type: String, required: true},
+  title: {type: String, required: true} ,
   artist: String,
   path: String,
   tags: [String],
@@ -12,15 +14,15 @@ var Track = mongoose.model('Track', trackSchema);
 
 
 var userSchema = mongoose.Schema({
-  accountId: Number, 
+  accountId: {type: Number, unique: true, sparse: true},
   displayName: {type: String, required: true},  
-  creationDate: Number, // how is it stored ???
   userType: String, 
   location: String,
   url: String,
-  isEmployee: Boolean,
-  reputation: Number,
-  acceptRate: Number,
+  creationDate: Number,
+  reputation: {type: Number, default: 0},
+  isEmployee: {type: Boolean, default: false},
+  acceptRate: {type: Number, default: 0},
   websiteUrl: String,
   profileImage: String,
   bages: [
@@ -46,6 +48,17 @@ var bageSchema = mongoose.Schema({
 // to get uts seconds from JavaScript time stamp Math.floor(d.getTime() / 1000)
 
 var User = mongoose.model('User', userSchema);
+
+// User.ensureIndexes(function (err) {
+//   if (err) return console.error('error creating indexes', err);
+// });
+User.on('index', function (err) {
+  if (err) {
+    console.error('error creating indexes', err);
+    return;
+  }
+  console.log('index on User collection has been created');
+});
 
 // todo: track model
 // todo: make accountId field indexed

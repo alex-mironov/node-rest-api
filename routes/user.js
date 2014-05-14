@@ -43,31 +43,51 @@ module.exports = function (router) {
         displayName: body.displayName,
       };
 
-        userUpd.url = body.url;
-        userUpd.accountId = body.accountId;
-        userUpd.profileImage = body.profileImage || '';
-        userUpd.websiteUrl = body.websiteUrl || '';
-        userUpd.acceptRate = body.acceptRate || 0;
-        userUpd.reputation = body.reputation || 0;
-        userUpd.userType = body.userType;
+      if (body.creationDate) {
+        // todo: prevent from changes readonly field
+      }
+
+      userUpd.url = body.url;
+      userUpd.accountId = body.accountId;
+      userUpd.profileImage = body.profileImage || '';
+      userUpd.websiteUrl = body.websiteUrl || '';
+      userUpd.userType = body.userType || '';
+      userUpd.location = body.location || '';
+
+  // accountId: Number, 
+  // displayName: {type: String, required: true},  
+  // creationDate: Number, // how is it stored ???
+  // userType: String, 
+  // location: String,
+  // url: String,
+  // isEmployee: Boolean,
+  // reputation: Number,
+  // acceptRate: Number,
+  // websiteUrl: String,
+  // profileImage: String,
 
 
       User.findByIdAndUpdate(user._id, userUpd, function (err, u) {
+        debugger;
         if (err) {
+          if (err.name == 'MongoError' && err.lastErrorObject.code == 11000) {
+            res.apiJson(err, {error: 'Provided \'accountId\' already in use'});
+          } else {
+            res.apiJson(err);
+          }
           console.log('error updating user document', err);
-          res.apiJson(err);
+          // todo: check if validation error
+          return;
         }
         res.apiJson(false, u);
       });
 
-  // creationDate: Number, // how is it stored ???
   // bages: [
   // // {
   //   // title: String,
   //   // count: Number    
   // // }
   // ],
-  // tracks: [trackSchema]
 
 
     })
@@ -85,9 +105,6 @@ module.exports = function (router) {
         body = req.body,
         trackFile = req.files.volume;
 
-//  todo: track validation
-      console.log('file', trackFile);
-
       var track = new Track({
         title: body.title,
         tags: body.tags,
@@ -97,7 +114,13 @@ module.exports = function (router) {
       });
 
       user.tracks.push(track);
-      user.save(res.apiJson);
+      user.save(function (err, trackCreated) {
+        if (err) {
+          res.apiJson(err);
+          return;
+        }
+        res.send(201, trackCreated); 
+      });
     });
 
     router.route('/:id/tracks/:trackId')
@@ -140,7 +163,13 @@ module.exports = function (router) {
       .delete(function (req, res) {
         var user = req.user;
         user.tracks.id(req.params.trackId).remove();
-        user.save(res.apiJson);
+        user.save(function (err) {
+          if (err) {
+            res.apiJson(err);
+            return;
+          }
+          res.send(204);
+        });
       });
 
   return router;
@@ -157,24 +186,45 @@ function createUser (req, res) {
   var body = req.body;
 
   var user = new User({
+    accountId: body.accountId,
     displayName: body.displayName,
     profileImage: body.profileImage,
-    reputation: body.reputation,
-    acceptRate: body.acceptRate,
     isEmployee: body.isEmployee,
     creationDate: new Date().getTime()
   });
 
+  if (body.reputation) {
+    user.reputation = body.reputation;
+  }
+  if (body.acceptRate) {
+    user.acceptRate = body.acceptRate;
+  }
+
+  // accountId: Number, 
+  // displayName: {type: String, required: true},  
+  // creationDate: Number, // how is it stored ???
+  // userType: String, 
+  // location: String,
+  // url: String,
+  // isEmployee: Boolean,
+  // reputation: Number,
+  // acceptRate: Number,
+  // websiteUrl: String,
+  // profileImage: String,
+
   user.save(function (err, data) {
-    if (!err) {
-      res.apiJson(false, data, 201);
-    } else {
+    if(err) {
       if (err.name == 'ValidationError') {
         res.apiJson(err, {error: composeValidationMessage(err)});
+      } else if (err.name == 'MongoError' && err.code == 11000) { 
+        res.apiJson(err, {error: 'User with the same \'accountId\' already exists'});
       } else {
         res.apiJson(err, null, 500);
       }
+      return;
     }
+
+    res.send(201, data);
   });
 }
 

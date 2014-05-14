@@ -24,6 +24,7 @@ var app = express();
 app.set('port', process.env.PORT || 3000);
 
 app.use(bodyParser());
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 
 app.use(favicon(__dirname + '/public/favicon.ico'));
