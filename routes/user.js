@@ -1,12 +1,14 @@
 var db = require('./../db'),
   User = db.User,
-  Track = db.Track;
+  Track = db.Track,
+  mongoose = require('mongoose'), 
+  multipart = require('connect-multiparty'),
+  wrap = require('./../wrapper'),
+  multipartMiddleware = multipart({uploadDir: 'uploads'});
 
-var multipart = require('connect-multiparty');
-var multipartMiddleware = multipart({uploadDir: 'uploads'});
-
-var pageSize = 50; // todo: move to config?
-
+var pageSize = 5; // todo: move to config?
+var root = 'http://localhost:3000',  // todo: move to config
+  usersRoute = root + '/api/users';
 
 // it can be a separate route object
 module.exports = function (router) {
@@ -14,43 +16,110 @@ module.exports = function (router) {
   router.param('id', function (req, res, next, userId) {
     User.findById(userId, function (err, user) {
       if (err) {
-        res.apiJson(err);
-        return;
+        return res.apiJson(err);
       }
       if (!user) {
-        res.apiJson(true, {error: 'User Not Found'}, 404);
-        return;
+        return res.apiJson(true, {error: 'User Not Found'}, 404);
       }
+
       req.user = user;
+      req.links = { 
+        self: usersRoute + '/' + user._id
+      };
+      req.links.tracks = req.links.self + '/tracks';
+
       next();
     });
   });
 
   router.route('/')
-    .get(getUsers)
-    .post(createUser);
+    .get(function (req, res) {
+      var query = req.query,
+        since = +query.since || 0,
+        usersSinceRoute = usersRoute + '?since=';
+
+      User.find({ }, null, { skip: since, limit: pageSize }, function (err, users) {
+        if (err) {
+          return res.apiJson(err);
+        }
+
+        var results = users.map(function (user) {
+          var userDoc = user._doc,
+            userRoute = usersRoute + '/' + user._id;
+          userDoc.tracks = wrapTracks(userDoc.tracks, userRoute + '/tracks');
+          return wrap(userDoc, {self: userRoute});
+        });
+        
+        var links = { self: usersSinceRoute + since };
+        if (since) {
+          links.prev = usersSinceRoute + (since - pageSize); 
+        }
+        if (users.length == pageSize) {
+          links.next = usersSinceRoute + (since + pageSize);
+        }
+
+        res.send(wrap(results, links));
+      });
+    })
+    .post(function (req, res) {
+       var body = req.body;
+
+      var user = new User({
+        accountId: body.accountId,
+        displayName: body.displayName,
+        profileImage: body.profileImage,
+        isEmployee: body.isEmployee,
+        creationDate: new Date().getTime(),
+        bages: body.bages
+      });
+
+      if (body.reputation) {
+        user.reputation = body.reputation;
+      }
+      if (body.acceptRate) {
+        user.acceptRate = body.acceptRate;
+      }
+
+      user.save(function (err, data) {
+        if(err) {
+          if (err.name == 'ValidationError') {
+            res.apiJson(err, {error: composeValidationMessage(err)});
+          } else if (err.name == 'MongoError' && err.code == 11000) { 
+            res.apiJson(err, {error: 'User with the same \'accountId\' already exists'});
+          } else {
+            res.apiJson(err, null, 500);
+          }
+          return;
+        }
+
+        res.send(201, data);
+      });
+    });
+
 
   router.route('/:id')
     .get(function (req, res, next) {
-      res.send(req.user);
+      var user = req.user,
+        userDoc = user._doc;
+
+      userDoc.tracks = wrapTracks(userDoc.tracks, req.links.self + '/tracks');
+
+      res.send(wrap(userDoc, {self: req.links.self}));
     })
     .put(function (req, res) {
       var body = req.body, 
         user = req.user;
 
       if (body.creationDate) {
-        res.apiJson({error: '\'creationDate\' is readonly field'});
-        return;
+        return res.apiJson({error: '\'creationDate\' is readonly field'});
       }
 
       User.findOne({accountId: body.accountId}, function (err, existUser) {
         if (err) {
-          res.apiJson(err);
-          return;
+          return res.apiJson(err);
         }
         if (existUser && user.accountId != existUser.accountId) {
-          res.apiJson(true, {error: 'Specified \'accountId\' already in use'});
-          return;
+          return res.apiJson(true, {error: 'Specified \'accountId\' already in use'});
         }
 
         user.accountId = body.accountId;
@@ -81,24 +150,29 @@ module.exports = function (router) {
       var user = req.user;
       user.remove(function (err) {
         if (err) {
-          res.apiJson(err);
-          return;
+          return res.apiJson(err);
         }
         res.send(204);
       });
     });
 
+
   router.route('/:id/tracks')
     .get(function (req, res) {
-      var user = req.user;
-      res.apiJson(false, user.tracks);
+      var user = req.user,
+        results = wrapTracks(user.tracks, req.links.tracks);
+
+      res.send(wrap(results, {self: req.links.tracks }));
     })
     .post(multipartMiddleware, function (req, res) {
       var user = req.user,
         body = req.body,
         trackFile = req.files.volume;
 
+        // todo: validate, only .mp3 files are acceptable
+
       var track = new Track({
+        _id: mongoose.Types.ObjectId(),
         title: body.title,
         tags: body.tags,
         path: trackFile.path,
@@ -107,31 +181,41 @@ module.exports = function (router) {
       });
 
       user.tracks.push(track);
-      user.save(function (err, trackCreated) {
+      user.save(function (err, userUpdated) {
         if (err) {
-          res.apiJson(err);
+          if (err.name == 'ValidationError') {
+            res.apiJson(err, {error: composeValidationMessage(err)});
+          } else {
+            res.apiJson(err);
+          }
           return;
         }
-        res.send(201, trackCreated); 
+        var trackAdded = userUpdated.tracks.id(track._id);
+        res.send(201, wrapTrack(trackAdded, req.links.tracks)); 
       });
     });
 
+
     router.route('/:id/tracks/:trackId')
-      .get(function (req, res) {
+      .all(function (req, res, next) {
         var user = req.user,
-          trackId = req.params.trackId,
-          track = user.tracks.id(trackId);
-        res.send(track);
+          trackId = req.params.trackId;
+
+        req.track = user.tracks.id(trackId);
+        if (!req.track) {
+          return res.apiJson(true, {error: 'Track \'' + trackId + '\' not found'}, 404);
+        }
+        next();
+      })
+      .get(function (req, res) {
+        res.send(wrapTrack(req.track, req.links.tracks));
       })
       .put(function (req, res) {
-        var user = req.user,
-          body = req.body,
-          trackId = req.params.trackId,
-          track = user.tracks.id(trackId);
+        var body = req.body,
+          track = req.track;
         
         if (body.path) {
-          res.apiJson({error: '\'path\' field is readonly'});
-          return;
+          return res.apiJson({error: '\'path\' field is readonly'});
         }
 
         track.title = body.title;
@@ -139,17 +223,16 @@ module.exports = function (router) {
         track.releaseYear = body.releaseYear;
         track.tags = body.tags;
 
-        user.save(function (err, u) {
+        req.user.save(function (err, u) {
           if (err) {
             var data;
             if (err.name == 'ValidationError') {
               data = {error: composeValidationMessage(err)};
             } 
-            res.apiJson(err, data);
-            return;
+            return res.apiJson(err, data);
           }
           
-          res.apiJson(false, u.tracks.id(trackId));
+          res.send(wrapTrack(u.tracks.id(track._id), req.links.tracks));
         });
 
       })
@@ -158,8 +241,7 @@ module.exports = function (router) {
         user.tracks.id(req.params.trackId).remove();
         user.save(function (err) {
           if (err) {
-            res.apiJson(err);
-            return;
+            return res.apiJson(err);
           }
           res.send(204);
         });
@@ -168,47 +250,6 @@ module.exports = function (router) {
   return router;
 }
 
-function getUsers (req, res) {
-  var query = req.query,
-    since = query.since || 0;
-
-  User.find({ }, null, { skip: since, limit: pageSize }, res.apiJson);
-}
-
-function createUser (req, res) {
-  var body = req.body;
-
-  var user = new User({
-    accountId: body.accountId,
-    displayName: body.displayName,
-    profileImage: body.profileImage,
-    isEmployee: body.isEmployee,
-    creationDate: new Date().getTime(),
-    bages: body.bages
-  });
-
-  if (body.reputation) {
-    user.reputation = body.reputation;
-  }
-  if (body.acceptRate) {
-    user.acceptRate = body.acceptRate;
-  }
-
-  user.save(function (err, data) {
-    if(err) {
-      if (err.name == 'ValidationError') {
-        res.apiJson(err, {error: composeValidationMessage(err)});
-      } else if (err.name == 'MongoError' && err.code == 11000) { 
-        res.apiJson(err, {error: 'User with the same \'accountId\' already exists'});
-      } else {
-        res.apiJson(err, null, 500);
-      }
-      return;
-    }
-
-    res.send(201, data);
-  });
-}
 
 function composeValidationMessage (validationErr) {
   var errors = validationErr.errors,
@@ -217,4 +258,18 @@ function composeValidationMessage (validationErr) {
     msg += ' ' + errors[e].message;
   }
   return msg;
+}
+
+function wrapUser (userModel) {
+
+}
+
+function wrapTrack (track, parentRoute) {
+  return wrap(track._doc, {self: parentRoute + '/' + track._id});
+}
+
+function wrapTracks (tracks, parentRoute) {
+  return tracks.map(function (track) {
+    return wrapTrack(track, parentRoute);
+  })
 }

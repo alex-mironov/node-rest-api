@@ -11,6 +11,7 @@ var errorHandler = require('errorhandler');
 
 var routes = require('./routes');
 var userRoute = require('./routes/user');
+var fs = require('fs');
 var http = require('http');
 var path = require('path');
 var db = require('./db');
@@ -21,7 +22,9 @@ var app = express();
 
 // all environments
 
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.argv[2] || 3000);
+app.set('views', __dirname + '/views');
+app.set('view engine', 'jade');
 
 app.use(bodyParser());
 app.use(bodyParser.json());
@@ -44,7 +47,6 @@ if ('development' == app.get('env')) {
 }
 
 
-// todo: implement not found route
 var router = express.Router();
 
 router.use(function (req, res, next) {
@@ -53,7 +55,7 @@ router.use(function (req, res, next) {
       console.log('error requesting', req.path, 'error:', err, data || '');
       code = code || 400;
       if (code == 500) {
-        data = {error: 'Something is wrong'};
+        data = {error: 'Something was wrong'};
       } else {
         data = data || {error: err.error || ''};
       }
@@ -67,9 +69,20 @@ router.use(function (req, res, next) {
 
 app.use('/api/users', userRoute(router)); // initilize users router
 
-app.get('/pocket', function (req, res) {
-  console.log('pocket requested', req.body);
-  res.send(200);
+app.use(function (req, res) {
+  res.status(404);
+
+  if (req.accepts('html')) {
+    res.render('not-found', {url: req.url});  
+    return;
+  } 
+
+  if (req.accepts('json')) {
+    res.send({error: 'Not Found'});
+    return;
+  }
+
+  res.type('txt').send('Not found');
 });
 
 db.connect(function (err) {
@@ -78,17 +91,36 @@ db.connect(function (err) {
     return;
   }
 
-  console.log('connected to mongodb');
-  if (process.argv[2] == '--import') {
-    var userImport = require('./user-import');
-    userImport(startServer);
-  } else {
-    startServer();
-  }
+  createUploadFolder(function () {
+    console.log('connected to mongodb');
+    if (process.argv.indexOf('--import') > -1) {
+      var userImport = require('./user-import');
+      userImport(startServer);
+    } else {
+      startServer();
+    }
+  });
+
 });  
 
 function startServer () {
   http.createServer(app).listen(app.get('port'), function(){
     console.log('Express server listening on port ' + app.get('port'));
+  });
+}
+
+function createUploadFolder (callback) {
+  fs.exists(__dirname + '/uploads', function (exists) {
+    if (!exists) {
+      fs.mkdir('./uploads', function (err) {
+        if (err) {
+          console.log('error creating \'uploads\' folder', err);
+          return;
+        }
+        callback();
+      });
+      return;
+    }
+    callback();
   });
 }

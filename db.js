@@ -12,7 +12,6 @@ var trackSchema = mongoose.Schema({
 
 var Track = mongoose.model('Track', trackSchema); 
 
-
 var userSchema = mongoose.Schema({
   accountId: {type: Number, unique: true, sparse: true},
   displayName: {type: String, required: true},  
@@ -21,7 +20,7 @@ var userSchema = mongoose.Schema({
   url: String,
   creationDate: Number,
   reputation: {type: Number, default: 0},
-  isEmployee: {type: Boolean},
+  isEmployee: {type: Boolean, default: false},
   acceptRate: {type: Number, default: 0},
   websiteUrl: String,
   profileImage: String,
@@ -34,22 +33,15 @@ var userSchema = mongoose.Schema({
   tracks: [trackSchema]
 });
 
-var bageSchema = mongoose.Schema({
-	title: String,
-	count: Number
-});
-
-
-
-// todo: convert StackExchange epoch times to JavaScript dates. Make more readable dates 
-// var utcSeconds = 1222430705;
-// var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
-// d.setUTCSeconds(utcSeconds);
-// to get uts seconds from JavaScript time stamp Math.floor(d.getTime() / 1000)
+// var bageSchema = mongoose.Schema({
+// 	title: String,
+// 	count: Number
+// });
 
 userSchema.path('displayName').validate(function (val) {
   return val.length > 2;
 }, '\'displayName\' should contain at least 3 symbols') ;
+
 var User = mongoose.model('User', userSchema);
 
 module.exports = {
@@ -60,7 +52,7 @@ module.exports = {
 
 function connect (callback) {
   var db = mongoose.connection;
-	db.on('error', callback); // todo: is chaining possible?
+	db.on('error', callback);
 	db.once('open', callback);	
   mongoose.connect('mongodb://localhost/contacts');
 }
