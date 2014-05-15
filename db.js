@@ -39,7 +39,7 @@ var userSchema = mongoose.Schema({
 // });
 
 userSchema.path('displayName').validate(function (val) {
-  return val.length > 2;
+  return val && val.length > 2;
 }, '\'displayName\' should contain at least 3 symbols') ;
 
 var User = mongoose.model('User', userSchema);

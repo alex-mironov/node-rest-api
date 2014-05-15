@@ -32,6 +32,17 @@ module.exports = function (router) {
     });
   });
 
+  router.param('trackId', function (req, res, next, trackId) {
+    var user = req.user;
+    req.track = user.tracks.id(trackId);
+
+    if (!req.track) {
+      return res.apiJson(true, {error: 'Track not found'}, 404);
+    }
+    next();
+  });
+
+
   router.route('/')
     .get(function (req, res) {
       var query = req.query,
@@ -62,7 +73,7 @@ module.exports = function (router) {
       });
     })
     .post(function (req, res) {
-       var body = req.body;
+      var body = req.body;
 
       var user = new User({
         accountId: body.accountId,
@@ -77,10 +88,10 @@ module.exports = function (router) {
         user.reputation = body.reputation;
       }
       if (body.acceptRate) {
-        user.acceptRate = body.acceptRate;
+        user.acceptRate = body.acceptRate; // todo: validate? not more than 100
       }
 
-      user.save(function (err, data) {
+      user.save(function (err, userCreated) {
         if(err) {
           if (err.name == 'ValidationError') {
             res.apiJson(err, {error: composeValidationMessage(err)});
@@ -92,7 +103,7 @@ module.exports = function (router) {
           return;
         }
 
-        res.send(201, data);
+        res.send(201, wrap(userCreated._doc, {self: usersRoute + '/' + userCreated._id}));
       });
     });
 
@@ -103,7 +114,6 @@ module.exports = function (router) {
         userDoc = user._doc;
 
       userDoc.tracks = wrapTracks(userDoc.tracks, req.links.self + '/tracks');
-
       res.send(wrap(userDoc, {self: req.links.self}));
     })
     .put(function (req, res) {
@@ -169,7 +179,7 @@ module.exports = function (router) {
         body = req.body,
         trackFile = req.files.volume;
 
-        // todo: validate, only .mp3 files are acceptable
+        // todo: add validation. only .mp3 files are acceptable
 
       var track = new Track({
         _id: mongoose.Types.ObjectId(),
@@ -196,56 +206,45 @@ module.exports = function (router) {
     });
 
 
-    router.route('/:id/tracks/:trackId')
-      .all(function (req, res, next) {
-        var user = req.user,
-          trackId = req.params.trackId;
+  router.route('/:id/tracks/:trackId')
+    .get(function (req, res) {
+      res.send(wrapTrack(req.track, req.links.tracks));
+    })
+    .put(function (req, res) {
+      var body = req.body,
+        track = req.track;
+      
+      if (body.path) {
+        return res.apiJson({error: '\'path\' field is readonly'});
+      }
 
-        req.track = user.tracks.id(trackId);
-        if (!req.track) {
-          return res.apiJson(true, {error: 'Track \'' + trackId + '\' not found'}, 404);
+      track.title = body.title;
+      track.artist = body.artist;
+      track.releaseYear = body.releaseYear;
+      track.tags = body.tags;
+
+      req.user.save(function (err, u) {
+        if (err) {
+          var data;
+          if (err.name == 'ValidationError') {
+            data = {error: composeValidationMessage(err)};
+          } 
+          return res.apiJson(err, data);
         }
-        next();
-      })
-      .get(function (req, res) {
-        res.send(wrapTrack(req.track, req.links.tracks));
-      })
-      .put(function (req, res) {
-        var body = req.body,
-          track = req.track;
         
-        if (body.path) {
-          return res.apiJson({error: '\'path\' field is readonly'});
-        }
-
-        track.title = body.title;
-        track.artist = body.artist;
-        track.releaseYear = body.releaseYear;
-        track.tags = body.tags;
-
-        req.user.save(function (err, u) {
-          if (err) {
-            var data;
-            if (err.name == 'ValidationError') {
-              data = {error: composeValidationMessage(err)};
-            } 
-            return res.apiJson(err, data);
-          }
-          
-          res.send(wrapTrack(u.tracks.id(track._id), req.links.tracks));
-        });
-
-      })
-      .delete(function (req, res) {
-        var user = req.user;
-        user.tracks.id(req.params.trackId).remove();
-        user.save(function (err) {
-          if (err) {
-            return res.apiJson(err);
-          }
-          res.send(204);
-        });
+        res.send(wrapTrack(u.tracks.id(track._id), req.links.tracks));
       });
+    })
+    .delete(function (req, res) {
+      var user = req.user;
+      user.tracks.id(req.params.trackId).remove();
+      user.save(function (err) {
+        if (err) {
+          return res.apiJson(err);
+        }
+        res.send(204);
+      });
+    });
 
   return router;
 }
