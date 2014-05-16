@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 // mongoose.set('debug', true); // todo: 
 
+// var max = [10, 'The value of path `{PATH}` ({VALUE}) exceeds the limit ({MAX}).'];
 
 var trackSchema = mongoose.Schema({
   title: {type: String, required: true} ,
@@ -21,7 +22,7 @@ var userSchema = mongoose.Schema({
   creationDate: Number,
   reputation: {type: Number, default: 0},
   isEmployee: {type: Boolean, default: false},
-  acceptRate: {type: Number, default: 0},
+  acceptRate: {type: Number, default: 0, max: 100},
   websiteUrl: String,
   profileImage: String,
   bages: [

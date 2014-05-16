@@ -1,16 +1,18 @@
 var db = require('./../db'),
   User = db.User,
   Track = db.Track,
+  nconf = require('nconf');
   mongoose = require('mongoose'), 
   multipart = require('connect-multiparty'),
   wrap = require('./../wrapper'),
-  multipartMiddleware = multipart({uploadDir: 'uploads'});
+  confProvider = require('./../conf-provider'),
+  multipartMiddleware = multipart({uploadDir: 'uploads'}),
 
-var pageSize = 5; // todo: move to config?
-var root = 'http://localhost:3000',  // todo: move to config
+  pageSize = 5,
+  root = confProvider.get('host') + ':' + confProvider.get('port'),
   usersRoute = root + '/api/users';
 
-// it can be a separate route object
+
 module.exports = function (router) {
 
   router.param('id', function (req, res, next, userId) {
@@ -260,7 +262,7 @@ function composeValidationMessage (validationErr) {
 }
 
 function wrapUser (userModel) {
-
+  // todo: ?
 }
 
 function wrapTrack (track, parentRoute) {
