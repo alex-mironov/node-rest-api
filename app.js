@@ -1,23 +1,20 @@
-/**
- * Module dependencies.
- */
-
 var express = require('express'),
+  fs = require('fs'),
+  http = require('http'),
+  path = require('path'),
   morgan = require('morgan'),
   favicon = require('static-favicon'),
   methodOverride = require('method-override'),
   bodyParser = require('body-parser'),
   errorHandler = require('errorhandler'),
-  confProvider = require('./conf-provider');
+  confProvider = require('./conf-provider'),
+  routes = require('./routes'),
+  userRoute = require('./routes/user'),
+  trackRoute = require('./routes/track'),
+  utils = require('./utils'),
+  db = require('./db'),
+  app = express();
 
-var routes = require('./routes');
-var userRoute = require('./routes/user');
-var fs = require('fs');
-var http = require('http');
-var path = require('path');
-var db = require('./db');
-
-var app = express();
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'jade');
@@ -37,14 +34,12 @@ app.use(function(err, req, res, next){
     res.send({ error: err.message });
 });
 
-// development only
+
 if ('development' == app.get('env')) {
   app.use(errorHandler());
 }
 
-var router = express.Router();
-
-router.use(function (req, res, next) {
+app.use(function (req, res, next) {
   res.apiJson = function (err, data, code) {
     if (err) {
       console.log('error requesting', req.path, 'error:', err, data || '');
@@ -62,8 +57,18 @@ router.use(function (req, res, next) {
   next();
 });
 
-app.use('/api/users', userRoute(router)); // initilize users router
 
+// retrieve user info for each request
+app.param(':id', utils.userParamMiddleware);
+
+var trackRouter = express.Router();
+// todo: add middleware for id
+app.use('/api/users/:id/tracks', trackRoute(trackRouter));
+
+var userRouter = express.Router();
+app.use('/api/users', userRoute(userRouter));
+
+// default route. send 404
 app.use(function (req, res) {
   res.status(404);
 

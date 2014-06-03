@@ -1,5 +1,5 @@
-var http = require('http');
-var zlib = require('zlib');
+var http = require('http'),
+  zlib = require('zlib');
 
 module.exports = {
   getUsers: getUsers
@@ -12,6 +12,7 @@ function getUsers (page, callback) {
   http.get(url, function (res) {
     // res.setEncoding('utf8');
     
+    // unzip stream
     var gunzip = zlib.createGunzip();
     res.pipe(gunzip);
 

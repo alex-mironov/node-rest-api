@@ -2,7 +2,6 @@ var path = require('path'),
 	nconf = require('nconf');
 
 nconf.argv()
-  //.env();
   .file({file: path.join(__dirname, 'config.json')});
 
  
@@ -16,3 +15,4 @@ nconf.argv()
   console.log('host: ' + nconf.get('host'));
 
   module.exports = nconf;
+  
