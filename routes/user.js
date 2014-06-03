@@ -18,7 +18,6 @@ var db = require('./../db'),
 
 module.exports = function (router) {
 
-  // retrieve user info for each request
   router.param('id', utils.userParamMiddleware);
 
   //  /users route
