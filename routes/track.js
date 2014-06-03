@@ -1,19 +1,19 @@
 var db = require('./../db'),
   User = db.User,
   Track = db.Track,
-  wrapper = require('./../wrapper'),
+  wrapper = require('./../services/response-wrapper'),
   wrap = wrapper.wrap,
+  wrapTrack = wrapper.wrapTrack,
   wrapTracks = wrapper.wrapTracks,
-  composeValidationMessage = require('./../utils').composeValidationMessage;
+  composeValidationMessage = require('./../services/utils').composeValidationMessage;
 
 module.exports = function (router) {
 
   router.param('trackId', function (req, res, next, trackId) {
     var user = req.user;
     req.track = user.tracks.id(trackId);
-
     if (!req.track) {
-      return res.apiJson(true, {error: 'Track not found'}, 404);
+      return res.send(404, {error: 'Track not found'});
     }
     next();
   });
@@ -23,14 +23,13 @@ module.exports = function (router) {
 		.get(function (req, res) {
       var user = req.user,
         results = wrapTracks(user.tracks, req.links.tracks);
-
       res.send(wrap(results, {self: req.links.tracks }));
     })
 
     .post(multipartMiddleware, function (req, res) {
       var user = req.user,
         body = req.body,
-        trackFile = req.files.volume;
+        trackFile = req.files.volume || {};
 
         // todo: add validation. only .mp3 files are acceptable
 

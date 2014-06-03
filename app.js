@@ -7,11 +7,11 @@ var express = require('express'),
   methodOverride = require('method-override'),
   bodyParser = require('body-parser'),
   errorHandler = require('errorhandler'),
-  confProvider = require('./conf-provider'),
-  routes = require('./routes'),
+
+  confProvider = require('./services/config-service'),
   userRoute = require('./routes/user'),
   trackRoute = require('./routes/track'),
-  utils = require('./utils'),
+  utils = require('./services/utils'),
   db = require('./db'),
   app = express();
 
@@ -62,7 +62,6 @@ app.use(function (req, res, next) {
 app.param(':id', utils.userParamMiddleware);
 
 var trackRouter = express.Router();
-// todo: add middleware for id
 app.use('/api/users/:id/tracks', trackRoute(trackRouter));
 
 var userRouter = express.Router();

@@ -10,9 +10,7 @@ function getUsers (page, callback) {
   console.log('loading users', url);
   
   http.get(url, function (res) {
-    // res.setEncoding('utf8');
     
-    // unzip stream
     var gunzip = zlib.createGunzip();
     res.pipe(gunzip);
 

@@ -1,7 +1,7 @@
-var db = require('./db'),
+var db = require('./../db'),
   User = db.User;
 
-  
+
 module.exports = {
 	userParamMiddleware: userParamMiddleware,
 	composeValidationMessage: composeValidationMessage

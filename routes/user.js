@@ -1,18 +1,17 @@
 var db = require('./../db'),
   User = db.User,
-  Track = db.Track,
   nconf = require('nconf');
   mongoose = require('mongoose'), 
   multipart = require('connect-multiparty'),
-  wrapper = require('./../wrapper'),
+  wrapper = require('./../services/response-wrapper'),
   wrap = wrapper.wrap,
   wrapTracks = wrapper.wrapTracks,
-  utils = require('./../utils'),
-  confProvider = require('./../conf-provider'),
+  utils = require('./../services/utils'),
+  configService = require('./../services/config-service'),
   multipartMiddleware = multipart({uploadDir: 'uploads'}),
   pageSize = 5,
   composeValidationMessage = utils.composeValidationMessage,  
-  root = confProvider.get('host') + ':' + confProvider.get('port'),
+  root = configService.get('host') + ':' + configService.get('port'),
   usersRoute = root + '/api/users';
 
 
