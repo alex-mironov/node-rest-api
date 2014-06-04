@@ -9,6 +9,7 @@ var express = require('express'),
   errorHandler = require('errorhandler'),
 
   confProvider = require('./services/config-service'),
+  indexRoute = require('./routes'),
   userRoute = require('./routes/user'),
   trackRoute = require('./routes/track'),
   utils = require('./services/utils'),
@@ -28,10 +29,10 @@ app.use(morgan());
 app.use(methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(function(err, req, res, next){
-    res.status(err.status || 500);
-    console.error('Internal error(%d): %s',res.statusCode,err.message);
-    res.send({ error: err.message });
+app.use(function(err, req, res, next) {
+  res.status(err.status || 500);
+  console.error('Internal error(%d): %s',res.statusCode,err.message);
+  res.send({ error: err.message });
 });
 
 
@@ -57,6 +58,8 @@ app.use(function (req, res, next) {
   next();
 });
 
+
+app.get('/', indexRoute);
 
 // retrieve user info for each request
 app.param(':id', utils.userParamMiddleware);

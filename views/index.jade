@@ -1,5 +1,202 @@
-extends layout
+doctype html
 
+link(rel='stylesheet', href='stylesheets/main.css')
 block content
-  h1= title
-  p Welcome to #{url}
+
+  main.wrapper
+    section
+      h1 Overview
+      
+      h2 Bootstrap
+      p To start server and import users from StackOverflow use command: <code>node app.js --import</code>. Normally you should use this command during server setup. And then use the command below
+      p To skip import phase just ommit <code>--import</code> parameter: <code>node app.js</code>
+
+      h2 Client errors
+      p Error message will be send in case of client errors on API calls that receive request bodies
+      pre
+        code HTTP/1.1 400 Bad Request <br/>{"error":"Problems parsing JSON"}
+
+      h2 Links object
+      p The pagination and resource location info is included in the Link object. It is important to follow these Link object values instead of constructing your own URLs.
+      h3 Example: 
+      pre.headers 
+        code GET api/users </br>HTTP/1.1 200 OK </br>
+      pre
+        code { <br/>  "items": [],<br>  "links":  { </br>    "self": "http://localhost:3000/api/users?since=5", </br>    "prev": "http://localhost:3000/api/users?since=0", </br>    "next": "http://localhost:3000/api/users?since=10" </br>  } </br>} 
+
+    section
+      h1 Users
+      h2 List users
+      p This provides a dump of every user, in the order that they were created. 
+      p Note: Pagination is powered exclusively by the <code/>since</code> parameter. Use the <code>Links</code> block in response to get the URL for the next page of users.
+      pre
+        code GET api/users
+      h3 Parameters
+      table
+        thead
+          tr
+            th Name
+            th Type
+            th Description
+        tbody
+          tr
+            td
+              code since
+            td
+              code number
+            td The number of the users you want to skip
+          tr
+      h3 Pagination
+      p Requests to users will be paginated to 5 items by default. You can specify further pages with the <code>?since</code> parameter.
+
+      h2 Create a new user
+      pre
+        code POST api/users
+      h3 Input
+      table
+        thead
+          tr
+            th Name
+            th Type
+            th Description
+        tbody
+          tr
+            td
+              code displayName
+            td
+              code string
+            td <strong>Required.</strong> The name of the user to be displayed
+          tr
+            td
+              code accountId
+            td
+              code number
+            td <strong>Unique.</strong> The id of the user on StackExchange
+          tr
+            td
+              code userType
+            td
+              code string
+            td The type of the user from StackExchange
+          tr
+            td
+              code url
+            td
+              code string
+            td A URL with more information about the user
+          tr
+            td
+              code reputation
+            td
+              code number
+            td The reputation of the user
+          tr
+            td
+              code isEmployee
+            td
+              code boolean
+            td Either true to mark user as employee, false in other case. Default: false
+          tr
+            td
+              code acceptRate
+            td
+              code number
+            td <strong>Max: 100.</strong> A percent of accepted answers.
+          tr
+            td
+              code websiteUrl
+            td
+              code string
+            td A URL of user's personal web site
+          tr
+            td
+              code profileImage
+            td
+              code string
+            td The image of user's profile
+          tr
+            td
+              code bages
+            td
+              code array
+            td List of user's bages 
+      
+      h2 Update the user
+      pre
+        code PUT api/users/:id
+      h3 Input
+      p See Create section for input
+
+      h2 Delete the user
+      pre
+        code DELETE api/users/:id
+      h3 Response
+      pre.headers 
+        code Status: 204 No Content
+      pre
+        code No Content 
+
+
+    section
+      h1 Tracks
+      h2 List the user's tracks
+      p This provides a dump of every track, in the order that they were created. 
+      pre
+        code GET api/users/:id/tracks
+
+      h2 Create track
+      p This provides a dump of every track, in the order that they were created. 
+      pre
+        code POST api/users/:id/tracks
+      h3 Input
+      table
+        thead
+          tr
+            th Name
+            th Type
+            th Description
+        tbody
+          tr
+            td
+              code title
+            td
+              code string
+            td <strong>Required.</strong> The name of the track
+          tr
+            td
+              code artist
+            td
+              code string
+            td The name of the singer
+          tr
+            td
+              code tags
+            td
+              code array
+            td List of tags on the track
+          tr
+            td
+              code releaseYear
+            td
+              code number
+            td The year of track release
+
+      h2 Get track
+      pre
+        code GET api/users/:id/tracks/:trackId
+
+      h2 Edit track
+      pre
+        code PUT api/users/:id/tracks/:trackId
+      h3 Parameters
+      p See create track section
+      
+      h2 Delete track
+      pre
+        code DELETE api/users/:id/tracks/:trackId
+      h3 Response
+      pre.headers 
+        code Status: 204 No Content
+      pre
+        code No Content 
+

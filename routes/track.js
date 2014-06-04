@@ -45,7 +45,7 @@ module.exports = function (router) {
       user.tracks.push(track);
       user.save(function (err, userUpdated) {
         if (err) {
-          if (err.name == 'ValidationError') {
+          if (err.name == 'ValidationError' || err.name == 'CastError') {
             res.apiJson(err, {error: composeValidationMessage(err)});
           } else {
             res.apiJson(err);
@@ -80,7 +80,7 @@ module.exports = function (router) {
 	      req.user.save(function (err, u) {
 	        if (err) {
 	          var data;
-	          if (err.name == 'ValidationError') {
+	          if (err.name == 'ValidationError' || err.name == 'CastError') {
 	            data = {error: composeValidationMessage(err)};
 	          } 
 	          return res.apiJson(err, data);

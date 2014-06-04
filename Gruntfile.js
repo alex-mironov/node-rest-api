@@ -13,13 +13,32 @@ module.exports = function(grunt) {
         }
       }
     },
+    less: {
+      development: {
+        files: {
+          'public/stylesheets/main.css': 'public/stylesheets/main.less'
+        }
+      },
+      production: {
+        files: {
+          'public/stylesheets/main.css': 'public/stylesheets/main.less'
+        }
+      }
+    },
     watch: {
-      files: ['<%= jshint.files %>'],
-      tasks: ['jshint']
+      scripts: {
+        files: ['<%= jshint.files %>'],
+        tasks: ['jshint']  
+      },
+      css: {
+        files: '**/*.less',
+        tasks: ['less']        
+      }
     }
 	});
 
-	grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-contrib-jshint');
+	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	
 	// the default task can be run just by typing "grunt" on the command line

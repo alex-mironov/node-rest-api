@@ -69,7 +69,7 @@ module.exports = function (router) {
 
       user.save(function (err, userCreated) {
         if(err) {
-          if (err.name == 'ValidationError') {
+          if (err.name == 'ValidationError' || err.name == 'CastError') {
             res.apiJson(err, {error: composeValidationMessage(err)});
           } else if (err.name == 'MongoError' && err.code == 11000) { 
             res.apiJson(err, {error: 'User with the same \'accountId\' already exists'});
@@ -110,6 +110,8 @@ module.exports = function (router) {
 
         user.accountId = body.accountId;
         user.displayName = body.displayName;
+        user.acceptRate = body.acceptRate || 0;
+        user.reputation = body.reputation;
         user.isEmployee = body.isEmployee;
         user.profileImage = body.profileImage;
         user.websiteUrl = body.websiteUrl;
@@ -120,14 +122,14 @@ module.exports = function (router) {
 
         user.save(function (err, updatedUser, n) {
           if (err) {
-            if (err.name == 'ValidationError') {
+            if (err.name == 'ValidationError' || err.name == 'CastError') {
               res.apiJson(err, {error: composeValidationMessage(err)});
             } else {
               res.apiJson(err);
             }
             return;
           }
-          res.send(updatedUser);
+          res.send(200, wrap(updatedUser._doc, {self: usersRoute + '/' + updatedUser._id}));
         });
       });
     })
