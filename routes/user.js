@@ -95,43 +95,43 @@ module.exports = function (router) {
     })
 
     .put(function (req, res) {
-      var body = req.body, 
-        user = req.user;
+      var user = req.user,
+        body = req.body,
+        prevAccountId = user.accountId;
 
-      if (body.creationDate) {
-        return res.apiJson({error: '\'creationDate\' is readonly field'});
-      }
+      user.accountId = body.accountId;
+      user.displayName = body.displayName;
+      user.acceptRate = body.acceptRate || 0;
+      user.reputation = body.reputation;
+      user.isEmployee = body.isEmployee;
+      user.profileImage = body.profileImage;
+      user.websiteUrl = body.websiteUrl;
+      user.userType = body.userType;
+      user.location = body.location;
+      user.url = body.url;
+      user.bages = body.bages;
 
-      User.findOne({accountId: body.accountId}, function (err, existUser) {
-        if (err) return res.apiJson(err);
-        if (existUser && user.accountId != existUser.accountId) {
-          return res.apiJson(true, {error: 'Specified \'accountId\' already in use'});
-        }
+      updatedUser(req, res, user, prevAccountId);
+    })
 
-        user.accountId = body.accountId;
-        user.displayName = body.displayName;
-        user.acceptRate = body.acceptRate || 0;
-        user.reputation = body.reputation;
-        user.isEmployee = body.isEmployee;
-        user.profileImage = body.profileImage;
-        user.websiteUrl = body.websiteUrl;
-        user.userType = body.userType;
-        user.location = body.location;
-        user.url = body.url;
-        user.bages = body.bages;
+    .patch(function (req, res) {
+      var user = req.user,
+        body = req.body,
+        prevAccountId = user.accountId;
 
-        user.save(function (err, updatedUser, n) {
-          if (err) {
-            if (err.name == 'ValidationError' || err.name == 'CastError') {
-              res.apiJson(err, {error: composeValidationMessage(err)});
-            } else {
-              res.apiJson(err);
-            }
-            return;
-          }
-          res.send(200, wrap(updatedUser._doc, {self: usersRoute + '/' + updatedUser._id}));
-        });
-      });
+      user.accountId = body.accountId || user.accountId;
+      user.displayName = body.displayName || user.displayName;
+      user.acceptRate = body.acceptRate || user.acceptRate;
+      user.reputation = body.reputation || user.reputation;
+      user.isEmployee = body.isEmployee || user.isEmployee;
+      user.profileImage = body.profileImage || user.profileImage;
+      user.websiteUrl = body.websiteUrl || user.websiteUrl;
+      user.userType = body.userType || user.userType;
+      user.location = body.location || user.location;
+      user.url = body.url || user.url;
+      user.bages = body.bages || user.bages;
+
+      updateUser(req, res, user, prevAccountId);
     })
 
     .delete(function (req, res) {
@@ -144,3 +144,32 @@ module.exports = function (router) {
 
   return router;
 };
+
+
+function updateUser (req, res, updUser, prevAccountId) {
+  var body = req.body;
+
+  if (body.creationDate) {
+    return res.apiJson({error: '\'creationDate\' is readonly field'});
+  }
+
+  User.findOne({accountId: body.accountId}, function (err, existUser) {
+    if (err) return res.apiJson(err);
+    
+    if (existUser && prevAccountId != existUser.accountId) {
+      return res.apiJson(true, {error: 'Specified \'accountId\' already in use'});
+    }
+
+    updUser.save(function (err, updatedUser, n) {
+      if (err) {
+        if (err.name == 'ValidationError' || err.name == 'CastError') {
+          res.apiJson(err, {error: composeValidationMessage(err)});
+        } else {
+          res.apiJson(err);
+        }
+        return;
+      }
+      res.send(200, wrap(updatedUser._doc, {self: usersRoute + '/' + updatedUser._id}));
+    });
+  });
+}  

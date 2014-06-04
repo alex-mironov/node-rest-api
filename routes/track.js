@@ -28,8 +28,13 @@ module.exports = function (router) {
 
     .post(multipartMiddleware, function (req, res) {
       var user = req.user,
-        body = req.body,
-        trackFile = req.files.volume || {};
+        body = req.body;
+
+      if (!req.files || !req.files.volume) {
+        return res.send(true, {error: 'Track file should be attached to form-data (key: \'volume\')'});
+      }
+      
+      var trackFile = req.files.volume;
 
         // todo: add validation. only .mp3 files are acceptable
 
@@ -68,27 +73,25 @@ module.exports = function (router) {
 	      var body = req.body,
 	        track = req.track;
 	      
-	      if (body.path) {
-	        return res.apiJson({error: '\'path\' field is readonly'});
-	      }
-
-	      track.title = body.title;
-	      track.artist = body.artist;
-	      track.releaseYear = body.releaseYear;
-	      track.tags = body.tags;
-
-	      req.user.save(function (err, u) {
-	        if (err) {
-	          var data;
-	          if (err.name == 'ValidationError' || err.name == 'CastError') {
-	            data = {error: composeValidationMessage(err)};
-	          } 
-	          return res.apiJson(err, data);
-	        }
-	        
-	        res.send(wrapTrack(u.tracks.id(track._id), req.links.tracks));
-	      });
+        track.title = body.title;
+        track.artist = body.artist;
+        track.releaseYear = body.releaseYear;
+        track.tags = body.tags;
+	      
+        updateTrack(req, res, track)
 	    })
+
+      .patch(function (req, res) {
+        var body = req.body,
+          track = req.track;
+        
+        track.title = body.title || track.title;
+        track.artist = body.artist || track.artist;
+        track.releaseYear = body.releaseYear || track.releaseYear;
+        track.tags = body.tags || track.tags;
+        
+        updateTrack(req, res, track)
+      })
 
 	    .delete(function (req, res) {
 	      var user = req.user;
@@ -101,3 +104,22 @@ module.exports = function (router) {
 
 	return router;
 };
+
+
+function updateTrack (req, res, updTrack) {
+  if (req.body.path) {
+    return res.apiJson(true, {error: 'Track file/path is readonly and cannot be changed'});
+  }
+
+  req.user.save(function (err, u) {
+    if (err) {
+      var data;
+      if (err.name == 'ValidationError' || err.name == 'CastError') {
+        data = {error: composeValidationMessage(err)};
+      } 
+      return res.apiJson(err, data);
+    }
+    
+    res.send(wrapTrack(u.tracks.id(updTrack._id), req.links.tracks));
+  });
+}

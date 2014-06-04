@@ -13,8 +13,10 @@ block content
 
       h2 Client errors
       p Error message will be send in case of client errors on API calls that receive request bodies
+      pre.headers
+        code HTTP/1.1 400 Bad Request
       pre
-        code HTTP/1.1 400 Bad Request <br/>{"error":"Problems parsing JSON"}
+        code { "error": "Problems parsing JSON" }
 
       h2 Links object
       p The pagination and resource location info is included in the Link object. It is important to follow these Link object values instead of constructing your own URLs.
@@ -121,13 +123,19 @@ block content
               code array
             td List of user's bages 
       
-      h2 Update the user
+      h2 Update
       pre
         code PUT api/users/:id
       h3 Input
-      p See Create section for input
+      p See <strong>Create</strong> section for input
 
-      h2 Delete the user
+      h2 Partially update
+      pre
+        code PATCH api/users/:id
+      h3 Input
+      p See <strong>Create</strong> section for input
+
+      h2 Delete
       pre
         code DELETE api/users/:id
       h3 Response
@@ -144,7 +152,7 @@ block content
       pre
         code GET api/users/:id/tracks
 
-      h2 Create track
+      h2 Create a new track
       p This provides a dump of every track, in the order that they were created. 
       pre
         code POST api/users/:id/tracks
@@ -180,18 +188,30 @@ block content
             td
               code number
             td The year of track release
+          tr
+            td
+              code releaseYear
+            td
+              code number
+            td TODO: file
 
-      h2 Get track
+      h2 Get
       pre
         code GET api/users/:id/tracks/:trackId
 
-      h2 Edit track
+      h2 Update
       pre
         code PUT api/users/:id/tracks/:trackId
       h3 Parameters
       p See create track section
+
+      h2 Partially update
+      pre
+        code PATCH api/users/:id/tracks/:trackId
+      h3 Parameters
+      p See create track section
       
-      h2 Delete track
+      h2 Delete
       pre
         code DELETE api/users/:id/tracks/:trackId
       h3 Response
