@@ -25,9 +25,16 @@ module.exports = function (router) {
     .get(function (req, res) {
       var query = req.query,
         since = +query.since || 0,
-        usersSinceRoute = usersRoute + '?since=';
+        usersSinceRoute = usersRoute + '?since=',
+        perPage = query.per_page || pageSize;
 
-      User.find({ }, null, { skip: since, limit: pageSize }, function (err, users) {
+      // possible NaN
+      var numPerPage = Number(perPage); 
+      if (!(numPerPage > 0) || numPerPage > 100) {
+        return res.apiJson({error: 'Positive integer expected as \'per_page\' query param (Max: 100)'});
+      }
+
+      User.find({ }, null, { skip: since, limit: perPage }, function (err, users) {
         if (err) return res.apiJson(err);
 
         var results = users.map(function (user) {
@@ -39,10 +46,10 @@ module.exports = function (router) {
         
         var links = { self: usersSinceRoute + since };
         if (since) {
-          links.prev = usersSinceRoute + (since - pageSize); 
+          links.prev = usersSinceRoute + (since - perPage); 
         }
-        if (users.length == pageSize) {
-          links.next = usersSinceRoute + (since + pageSize);
+        if (users.length == perPage) {
+          links.next = usersSinceRoute + (since + perPage);
         }
 
         res.send(wrap(results, links));
