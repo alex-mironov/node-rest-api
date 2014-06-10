@@ -28,15 +28,15 @@ module.exports = function (router) {
 
     .post(multipartMiddleware, function (req, res) {
       var user = req.user,
-        body = req.body;
+        body = req.body,
+        files = req.files;
 
-      if (!req.files || !req.files.volume) {
+      if (!files || !files.volume) {
         return res.send(true, {error: 'Track file should be attached to form-data (key: \'volume\')'});
       }
       
-      var trackFile = req.files.volume;
-
-        // todo: add validation. only .mp3 files are acceptable
+      var trackFile = files.volume;
+      // todo: add validation. only .mp3 files are acceptable
 
       var track = new Track({
         _id: mongoose.Types.ObjectId(),
@@ -48,6 +48,7 @@ module.exports = function (router) {
       });
 
       user.tracks.push(track);
+
       user.save(function (err, userUpdated) {
         if (err) {
           if (err.name == 'ValidationError' || err.name == 'CastError') {
@@ -113,11 +114,12 @@ function updateTrack (req, res, updTrack) {
 
   req.user.save(function (err, u) {
     if (err) {
-      var data;
       if (err.name == 'ValidationError' || err.name == 'CastError') {
-        data = {error: composeValidationMessage(err)};
-      } 
-      return res.apiJson(err, data);
+        res.apiJson(err, {error: composeValidationMessage(err)});
+      } else {
+        res.apiJson(err);
+      }
+      return;
     }
     
     res.send(wrapTrack(u.tracks.id(updTrack._id), req.links.tracks));

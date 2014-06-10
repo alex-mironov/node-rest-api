@@ -4,8 +4,10 @@ var db = require('./../db'),
   mongoose = require('mongoose'), 
   multipart = require('connect-multiparty'),
   wrapper = require('./../services/response-wrapper'),
-  wrap = wrapper.wrap,
-  wrapTracks = wrapper.wrapTracks,
+
+  wrapUser = wrapper.wrapUser,
+  wrapUsers = wrapper.wrapUsers,
+
   utils = require('./../services/utils'),
   configService = require('./../services/config-service'),
   multipartMiddleware = multipart({uploadDir: 'uploads'}),
@@ -15,17 +17,17 @@ var db = require('./../db'),
   usersRoute = root + '/api/users';
 
 
+// todo: remove tracks from response in user object
 module.exports = function (router) {
 
   router.param('id', utils.userParamMiddleware);
 
-  //  /users route
+  // /users route
   router.route('/')
 
     .get(function (req, res) {
       var query = req.query,
         since = +query.since || 0,
-        usersSinceRoute = usersRoute + '?since=',
         perPage = query.per_page || pageSize;
 
       // possible NaN
@@ -36,23 +38,7 @@ module.exports = function (router) {
 
       User.find({ }, null, { skip: since, limit: perPage }, function (err, users) {
         if (err) return res.apiJson(err);
-
-        var results = users.map(function (user) {
-          var userDoc = user._doc,
-            userRoute = usersRoute + '/' + user._id;
-          userDoc.tracks = wrapTracks(userDoc.tracks, userRoute + '/tracks');
-          return wrap(userDoc, {self: userRoute});
-        });
-        
-        var links = { self: usersSinceRoute + since };
-        if (since) {
-          links.prev = usersSinceRoute + (since - perPage); 
-        }
-        if (users.length == perPage) {
-          links.next = usersSinceRoute + (since + perPage);
-        }
-
-        res.send(wrap(results, links));
+        res.send(wrapUsers(users, usersRoute, since, perPage));
       });
     })
 
@@ -85,7 +71,7 @@ module.exports = function (router) {
           }
           return;
         }
-        res.send(201, wrap(userCreated._doc, {self: usersRoute + '/' + userCreated._id}));
+        res.send(201, wrapUser(userCreated, usersRoute));
       });
     });
 
@@ -94,11 +80,8 @@ module.exports = function (router) {
   router.route('/:id')
 
     .get(function (req, res, next) {
-      var user = req.user,
-        userDoc = user._doc;
-
-      userDoc.tracks = wrapTracks(userDoc.tracks, req.links.self + '/tracks');
-      res.send(wrap(userDoc, {self: req.links.self}));
+      var user = req.user;
+      res.send(wrapUser(user, usersRoute));
     })
 
     .put(function (req, res) {
@@ -176,7 +159,7 @@ function updateUser (req, res, updUser, prevAccountId) {
         }
         return;
       }
-      res.send(200, wrap(updatedUser._doc, {self: usersRoute + '/' + updatedUser._id}));
+      res.send(200, wrapUser(updatedUser, usersRoute));
     });
   });
 }  

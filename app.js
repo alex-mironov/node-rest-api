@@ -31,10 +31,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(function(err, req, res, next) {
   res.status(err.status || 500);
-  console.error('Internal error(%d): %s',res.statusCode,err.message);
-  res.send({ error: err.message });
+  console.error('Internal error(%d): %s', res.statusCode, err.message);
+  res.send({ error: 'Internal Server Error' });
 });
-
 
 if ('development' == app.get('env')) {
   app.use(errorHandler());
@@ -46,7 +45,7 @@ app.use(function (req, res, next) {
       console.log('error requesting', req.path, 'error:', err, data || '');
       code = code || 400;
       if (code == 500) {
-        data = {error: 'Something was wrong'};
+        data = {error: 'Internal Server Error'};
       } else {
         data = data || {error: err.error || ''};
       }
@@ -58,19 +57,18 @@ app.use(function (req, res, next) {
   next();
 });
 
-
 app.get('/', indexRoute);
 
 // retrieve user info for each request
 app.param(':id', utils.userParamMiddleware);
 
-var trackRouter = express.Router();
-app.use('/api/users/:id/tracks', trackRoute(trackRouter));
-
 var userRouter = express.Router();
 app.use('/api/users', userRoute(userRouter));
 
-// default route. send 404
+var trackRouter = express.Router();
+app.use('/api/users/:id/tracks', trackRoute(trackRouter));
+
+// if still no route found send 404
 app.use(function (req, res) {
   res.status(404);
 
@@ -82,7 +80,7 @@ app.use(function (req, res) {
     return res.send({error: 'Not Found'});
   }
 
-  res.type('txt').send('Not found');
+  res.type('txt').send('Not Found');
 });
 
 db.connect(function (err) {
