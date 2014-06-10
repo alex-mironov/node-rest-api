@@ -11,6 +11,9 @@ block content
       p To start server and import users from StackOverflow use command: <code>node app.js --import</code>. Normally you should use this command during server setup. And then use the command below
       p To skip import phase just ommit <code>--import</code> parameter: <code>node app.js</code>
 
+      h2 Content type
+      p All requests should be sent with <code>Content-Type: application/x-www-form-urlencoded</code> header. Requests that suppose files upload should be sent with <code>Content-Type: multipart/form-data</code> header.
+
       h2 Client errors
       p Error message will be send in case of client errors on API calls that receive request bodies
       pre.headers
@@ -30,7 +33,8 @@ block content
       h1 Users
       h2 List users
       p This provides a dump of every user, in the order that they were created. 
-      p Note: Pagination is powered exclusively by the <code/>since</code> parameter. Use the <code>Links</code> block in response to get the URL for the next page of users. You can also set a custom page size up to 100 with the <code>?per_page</code> parameter.
+      p <strong>Note:</strong> Pagination is powered exclusively by the <code/>since</code> parameter. Use the <code>Links</code> block in response to get the URL for the next page of users. You can also set a custom page size up to 100 with the <code>?per_page</code> parameter.
+      p <strong>Under implementation:</strong> Future version of API will include optional <code>tracks</code> parameter to embed tracks into user object. 
       pre
         code GET api/users
       h3 Parameters
@@ -156,6 +160,8 @@ block content
       p This provides a dump of every track, in the order that they were created. 
       pre
         code POST api/users/:id/tracks
+      h3 Content-Type
+      code Content-Type: multipart/form-data
       h3 Input
       table
         thead
@@ -187,13 +193,13 @@ block content
               code releaseYear
             td
               code number
-            td The year of track release
+            td The year of track release. It should be in range between 1900 and 2014
           tr
             td
-              code releaseYear
+              code volume
             td
-              code number
-            td TODO: file
+              code [binary]
+            td Track file (todo: there is no validation right now, so it can be file of any type)
 
       h2 Get
       pre

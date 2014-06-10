@@ -6,7 +6,7 @@ var trackSchema = mongoose.Schema({
     artist: String,
     path: String,
     tags: [String],
-    releaseYear: Number
+    releaseYear: {type: Number, max: 2014, min: 1900}
   }),
   
   userSchema = mongoose.Schema({

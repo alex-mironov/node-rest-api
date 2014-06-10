@@ -57,7 +57,7 @@ module.exports = function (router) {
         user.reputation = body.reputation;
       }
       if (body.acceptRate) {
-        user.acceptRate = body.acceptRate; // todo: validate? not more than 100
+        user.acceptRate = body.acceptRate;
       }
 
       user.save(function (err, userCreated) {

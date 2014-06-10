@@ -2,9 +2,10 @@ var db = require('./../db'),
   User = db.User,
   Track = db.Track,
   wrapper = require('./../services/response-wrapper'),
-  wrap = wrapper.wrap,
+
   wrapTrack = wrapper.wrapTrack,
   wrapTracks = wrapper.wrapTracks,
+
   composeValidationMessage = require('./../services/utils').composeValidationMessage;
 
 module.exports = function (router) {
@@ -21,9 +22,8 @@ module.exports = function (router) {
 	router.route('/')
 
 		.get(function (req, res) {
-      var user = req.user,
-        results = wrapTracks(user.tracks, req.links.tracks);
-      res.send(wrap(results, {self: req.links.tracks }));
+      var user = req.user;
+      res.send(wrapTracks(user.tracks, req.links.tracks));
     })
 
     .post(multipartMiddleware, function (req, res) {

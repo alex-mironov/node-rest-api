@@ -47,12 +47,13 @@ function wrapUsers (users, route, since, perPage) {
   return wrap(results, links);
 }
 
-function wrapTrack (track, parentRoute) {
-  return wrap(track._doc, {self: parentRoute + '/' + track._id});
+function wrapTrack (track, route) {
+  return wrap(track._doc, {self: route + '/' + track._id});
 }
 
-function wrapTracks (tracks, parentRoute) {
-  return tracks.map(function (track) {
-    return wrapTrack(track, parentRoute);
+function wrapTracks (tracks, route) {
+  var results = tracks.map(function (track) {
+    return wrapTrack(track, route);
   });
+  return wrap(results, {self: route});
 }
