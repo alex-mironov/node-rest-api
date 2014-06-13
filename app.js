@@ -13,6 +13,8 @@ var express = require('express'),
   userRoute = require('./routes/user'),
   trackRoute = require('./routes/track'),
   utils = require('./services/utils'),
+  userImport = require('./services/user-import'),
+
   db = require('./db'),
   app = express();
 
@@ -90,8 +92,8 @@ db.connect(function (err) {
 
   createUploadFolder(function () {
     console.log('connected to mongodb');
-    if (confProvider.get('--import')) {
-      var userImport = require('./user-import');
+    
+    if (confProvider.get('import')) {
       userImport(startServer);
     } else {
       startServer();

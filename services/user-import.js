@@ -1,12 +1,13 @@
 var async = require('async'),
   userService = require('./user-service'),
-  User = require('./db').User;
+  User = require('./../db').User;
 
 module.exports = importUsers;
 
 // allows to import users from StackExchange (StackOverflow)
 function importUsers (callback) {
 
+debugger;
   async.times(10, function (n, next) {
     var page = 100 * (n + 1);
 
